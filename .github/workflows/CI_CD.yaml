@@ -32,7 +32,7 @@ jobs:
 
       - name: Build, tag, and push image to Amazon ECR
         env:
-          ECR_REGISTRY: https://975050117923.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REGISTRY: public.ecr.aws/g9o2v6t2
           ECR_REPOSITORY: cosmo-router
           IMAGE_TAG: latest
         run: |

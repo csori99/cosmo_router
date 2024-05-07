@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=./pkg/config/config.schema.json
+
+# See pkg/config/config.go for the full list of configuration options.
+# This file is used to debugging purposes only.
+
+version: "1"
+graph:
+  token: "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIzZTlmNDEzYS0xZmUzLTQ5MTMtYmJlYi01ODdhZmUxNzQ4NWIiLCJmZWRlcmF0ZWRfZ3JhcGhfaWQiOiI5NjIzYWExOS0yYWE0LTRjYmItOWEwYy1kNTk5NGY2NzIzOTkiLCJhdWQiOiJjb3NtbzpncmFwaC1rZXkiLCJvcmdhbml6YXRpb25faWQiOiJjMmI0YzZlZS0zZTI2LTRmM2MtYjY5My1mMGMyMjY3Y2EwYjYiLCJpYXQiOjE3MTQ3NDg5MDh9.DQDzhWBkEQcxE5CdU9CIwjRPPdu7LcQm50bTMviK9BA"

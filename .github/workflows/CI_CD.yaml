@@ -36,8 +36,7 @@ jobs:
           ECR_REPOSITORY: cosmo-router
           IMAGE_TAG: latest
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
+          docker build -t public.ecr.aws/g9o2v6t2/:$IMAGE_TAG .
+          docker push public.ecr.aws/g9o2v6t2/:$IMAGE_TAG
       - name: Cleanup
-        run: docker rmi $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        run: docker rmi public.ecr.aws/g9o2v6t2/:$IMAGE_TAG

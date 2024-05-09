@@ -1,85 +1,85 @@
 package module
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
-	"github.com/golang-jwt/jwt/v5"
-	"go.uber.org/zap"
-
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
 	"github.com/wundergraph/cosmo/router/core"
+	"go.uber.org/zap"
+	"google.golang.org/api/option"
 )
 
 func init() {
-	// Register your module here
-	core.RegisterModule(&JWTModule{})
+	core.RegisterModule(&FirebaseAuthModule{})
 }
 
 const (
-	ModuleID        = "com.example.custom-jwt"
-	tokenContextKey = "jwt-token"
+	ModuleID       = "com.example.firebase-auth"
+	authContextKey = "firebase-auth-token"
 )
 
-// JWTModule is a module that signs outgoing requests with a JWT token
-// based on the authentication information of the received request
-type JWTModule struct {
-	// Properties that are set by the config file are automatically populated based on the `mapstructure` tag
-	// Create a new section under `modules.<name>` in the config file with the same name as your module.
-	// Don't forget in Go the first letter of a property must be uppercase to be exported
-
-	SecretKey string `mapstructure:"secret_key"`
-
-	Logger *zap.Logger
+type FirebaseAuthModule struct {
+	FirebaseAuth *auth.Client
+	Logger       *zap.Logger
 }
 
-func (m *JWTModule) Provision(ctx *core.ModuleContext) error {
-	// Validate that the secret key was provided
-	if m.SecretKey == "" {
-		return fmt.Errorf("secret key cannot be empty")
+func (m *FirebaseAuthModule) Provision(ctx *core.ModuleContext) error {
+	// Provide the path to the Firebase admin SDK json file
+	app, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsFile("path/to/ourStagewoodKey.json"))
+	if err != nil {
+		return fmt.Errorf("error initializing Firebase app: %v", err)
 	}
 
-	// Assign the logger to the module for non-request related logging
+	m.FirebaseAuth, err = app.Auth(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to initialize Firebase Auth client: %v", err)
+	}
+
+	// Assign the logger to the module
 	m.Logger = ctx.Logger
 
 	return nil
 }
 
-func (m *JWTModule) Middleware(ctx core.RequestContext, next http.Handler) {
-	// Check if the incoming request is authenticated. In that case, we
-	// generate a new JWT with the shared secret key and add it to the
-	// request context
-	auth := ctx.Authentication()
-	if auth != nil {
-		claims := jwt.MapClaims(auth.Claims())
-		if claims == nil {
-			claims = make(jwt.MapClaims)
-		}
-		claims["iss"] = "cosmo-router"
-		t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signed, err := t.SignedString([]byte(m.SecretKey))
-		if err != nil {
-			core.WriteResponseError(ctx, fmt.Errorf("error signing token: %w", err))
-			return
-		}
-		ctx.Set(tokenContextKey, signed)
+func (m *FirebaseAuthModule) Middleware(ctx core.RequestContext, next http.Handler) {
+	authHeader := ctx.Request().Header.Get("Authorization")
+	if authHeader == "" {
+		core.WriteResponseError(ctx, fmt.Errorf("authorization header is required"))
+		return
 	}
+
+	idToken := authHeader[len("Bearer "):]
+	token, err := m.FirebaseAuth.VerifyIDToken(context.Background(), idToken)
+	if err != nil {
+		core.WriteResponseError(ctx, fmt.Errorf("error verifying Firebase ID token: %w", err))
+		return
+	}
+
+	ctx.Set(authContextKey, token.Claims)
 	next.ServeHTTP(ctx.ResponseWriter(), ctx.Request())
 }
 
-func (m *JWTModule) OnOriginRequest(request *http.Request, ctx core.RequestContext) (*http.Request, *http.Response) {
-	// Get the token, if any, from the request context and add it to the outgoing request
-	if token := ctx.GetString(tokenContextKey); token != "" {
-		request.Header.Add("Authorization", "Bearer "+token)
+func (m *FirebaseAuthModule) OnOriginRequest(request *http.Request, ctx core.RequestContext) (*http.Request, *http.Response) {
+	if claims, ok := ctx.Get(authContextKey); ok {
+		if claimsMap, ok := claims.(map[string]interface{}); ok {
+			// Now you can safely use claimsMap
+			// Example: Accessing user_id from claims
+			if userID, ok := claimsMap["user_id"].(string); ok {
+				request.Header.Add("X-User-ID", userID)
+			}
+		}
 	}
 	return request, nil
 }
 
-func (m *JWTModule) Module() core.ModuleInfo {
+func (m *FirebaseAuthModule) Module() core.ModuleInfo {
 	return core.ModuleInfo{
-		// This is the ID of your module, it must be unique
 		ID: ModuleID,
 		New: func() core.Module {
-			return &JWTModule{}
+			return &FirebaseAuthModule{}
 		},
 	}
 }
@@ -88,4 +88,4 @@ var _ interface {
 	core.EnginePreOriginHandler
 	core.RouterMiddlewareHandler
 	core.Provisioner
-} = (*JWTModule)(nil)
+} = (*FirebaseAuthModule)(nil)

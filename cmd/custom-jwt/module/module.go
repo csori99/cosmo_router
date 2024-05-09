@@ -27,7 +27,7 @@ type FirebaseAuthModule struct {
 }
 
 func (m *FirebaseAuthModule) Provision(ctx *core.ModuleContext) error {
-	// Provide the path to the Firebase admin SDK json file
+	// path to stagewood firebase key
 	app, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsFile("path/to/ourStagewoodKey.json"))
 	if err != nil {
 		return fmt.Errorf("error initializing Firebase app: %v", err)

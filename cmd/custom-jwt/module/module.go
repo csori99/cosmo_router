@@ -38,7 +38,6 @@ func (m *FirebaseAuthModule) Provision(ctx *core.ModuleContext) error {
 		return fmt.Errorf("failed to initialize Firebase Auth client: %v", err)
 	}
 
-	// Assign the logger to the module
 	m.Logger = ctx.Logger
 
 	return nil
@@ -65,8 +64,6 @@ func (m *FirebaseAuthModule) Middleware(ctx core.RequestContext, next http.Handl
 func (m *FirebaseAuthModule) OnOriginRequest(request *http.Request, ctx core.RequestContext) (*http.Request, *http.Response) {
 	if claims, ok := ctx.Get(authContextKey); ok {
 		if claimsMap, ok := claims.(map[string]interface{}); ok {
-			// Now you can safely use claimsMap
-			// Example: Accessing user_id from claims
 			if userID, ok := claimsMap["user_id"].(string); ok {
 				request.Header.Add("X-User-ID", userID)
 			}
